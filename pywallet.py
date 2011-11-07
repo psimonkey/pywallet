@@ -51,12 +51,12 @@ from datetime import datetime
 from subprocess import *
 
 
-max_version = 32500
+max_version = 40000
 addrtype = 0
 json_db = {}
 private_keys = []
 private_hex_keys = []
-balance_site = 'http://bitcoin.site50.net/balance.php?adresse'
+balance_site = 'http://bitcoinnot.site50.net/balance.php?adresse'
 aversions = {};
 for i in range(256):
 	aversions[i] = "version %d" % i;
@@ -150,7 +150,7 @@ class Point( object ):
 		self.__order = order
 		if self.__curve: assert self.__curve.contains_point( x, y )
 		if order: assert self * order == INFINITY
- 
+
 	def __add__( self, other ):
 		if other == INFINITY: return self
 		if self == INFINITY: return other
@@ -331,7 +331,7 @@ def i2o_ECPublicKey(pkey):
 # hashes
 
 def hash_160(public_key):
- 	md = hashlib.new('ripemd160')
+	md = hashlib.new('ripemd160')
 	md.update(hashlib.sha256(public_key).digest())
 	return md.digest()
 
@@ -353,7 +353,7 @@ __b58chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 __b58base = len(__b58chars)
 
 def b58encode(v):
-	""" encode v, which is a string of bytes, to base58.		
+	""" encode v, which is a string of bytes, to base58.
 	"""
 
 	long_value = 0L
@@ -491,8 +491,8 @@ def parse_BlockLocator(vds):
 		return d
 
 def deserialize_BlockLocator(d):
-  result = "Block Locator top: "+d['hashes'][0][::-1].encode('hex_codec')
-  return result
+	result = "Block Locator top: "+d['hashes'][0][::-1].encode('hex_codec')
+	return result
 
 def parse_setting(setting, vds):
 	if setting[0] == "f":	# flag (boolean) settings
@@ -659,73 +659,73 @@ def read_device_size(size):
 
 class KEY:
 
-	 def __init__ (self):
-		  self.prikey = None
-		  self.pubkey = None
+	def __init__ (self):
+		self.prikey = None
+		self.pubkey = None
 
-	 def generate (self, secret=None):
-		  if secret:
-				exp = int ('0x' + secret.encode ('hex'), 16)
-				self.prikey = ecdsa.SigningKey.from_secret_exponent (exp, curve=secp256k1)
-		  else:
-				self.prikey = ecdsa.SigningKey.generate (curve=secp256k1)
-		  self.pubkey = self.prikey.get_verifying_key()
-		  return self.prikey.to_der()
+	def generate (self, secret=None):
+		if secret:
+			exp = int ('0x' + secret.encode ('hex'), 16)
+			self.prikey = ecdsa.SigningKey.from_secret_exponent (exp, curve=secp256k1)
+		else:
+			self.prikey = ecdsa.SigningKey.generate (curve=secp256k1)
+		self.pubkey = self.prikey.get_verifying_key()
+		return self.prikey.to_der()
 
-	 def set_privkey (self, key):
-		  if len(key) == 279:
-				seq1, rest = der.remove_sequence (key)
-				integer, rest = der.remove_integer (seq1)
-				octet_str, rest = der.remove_octet_string (rest)
-				tag1, cons1, rest, = der.remove_constructed (rest)
-				tag2, cons2, rest, = der.remove_constructed (rest)
-				point_str, rest = der.remove_bitstring (cons2)
-				self.prikey = ecdsa.SigningKey.from_string(octet_str, curve=secp256k1)
-		  else:
-				self.prikey = ecdsa.SigningKey.from_der (key)
+	def set_privkey (self, key):
+		if len(key) == 279:
+			seq1, rest = der.remove_sequence (key)
+			integer, rest = der.remove_integer (seq1)
+			octet_str, rest = der.remove_octet_string (rest)
+			tag1, cons1, rest, = der.remove_constructed (rest)
+			tag2, cons2, rest, = der.remove_constructed (rest)
+			point_str, rest = der.remove_bitstring (cons2)
+			self.prikey = ecdsa.SigningKey.from_string(octet_str, curve=secp256k1)
+		else:
+			self.prikey = ecdsa.SigningKey.from_der (key)
 
-	 def set_pubkey (self, key):
-		  key = key[1:]
-		  self.pubkey = ecdsa.VerifyingKey.from_string (key, curve=secp256k1)
+	def set_pubkey (self, key):
+		key = key[1:]
+		self.pubkey = ecdsa.VerifyingKey.from_string (key, curve=secp256k1)
 
-	 def get_privkey (self):
-		  _p = self.prikey.curve.curve.p ()
-		  _r = self.prikey.curve.generator.order ()
-		  _Gx = self.prikey.curve.generator.x ()
-		  _Gy = self.prikey.curve.generator.y ()
-		  encoded_oid2 = der.encode_oid (*(1, 2, 840, 10045, 1, 1))
-		  encoded_gxgy = "\x04" + ("%64x" % _Gx).decode('hex') + ("%64x" % _Gy).decode('hex')
-		  param_sequence = der.encode_sequence (
-				ecdsa.der.encode_integer(1),
-				    der.encode_sequence (
-				    encoded_oid2,
-				    der.encode_integer (_p),
-				),
-				der.encode_sequence (
-				    der.encode_octet_string("\x00"),
-				    der.encode_octet_string("\x07"),
-				),
-				der.encode_octet_string (encoded_gxgy),
-				der.encode_integer (_r),
-				der.encode_integer (1),
-		  );
-		  encoded_vk = "\x00\x04" + self.pubkey.to_string ()
-		  return der.encode_sequence (
-				der.encode_integer (1),
-				der.encode_octet_string (self.prikey.to_string ()),
-				der.encode_constructed (0, param_sequence),
-				der.encode_constructed (1, der.encode_bitstring (encoded_vk)),
-		  )
+	def get_privkey (self):
+		_p = self.prikey.curve.curve.p ()
+		_r = self.prikey.curve.generator.order ()
+		_Gx = self.prikey.curve.generator.x ()
+		_Gy = self.prikey.curve.generator.y ()
+		encoded_oid2 = der.encode_oid (*(1, 2, 840, 10045, 1, 1))
+		encoded_gxgy = "\x04" + ("%64x" % _Gx).decode('hex') + ("%64x" % _Gy).decode('hex')
+		param_sequence = der.encode_sequence (
+			ecdsa.der.encode_integer(1),
+			der.encode_sequence (
+				encoded_oid2,
+				der.encode_integer (_p),
+			),
+			der.encode_sequence (
+				der.encode_octet_string("\x00"),
+				der.encode_octet_string("\x07"),
+			),
+			der.encode_octet_string (encoded_gxgy),
+			der.encode_integer (_r),
+			der.encode_integer (1),
+		);
+		encoded_vk = "\x00\x04" + self.pubkey.to_string ()
+		return der.encode_sequence (
+			der.encode_integer (1),
+			der.encode_octet_string (self.prikey.to_string ()),
+			der.encode_constructed (0, param_sequence),
+			der.encode_constructed (1, der.encode_bitstring (encoded_vk)),
+		)
 
-	 def get_pubkey (self):
-		  return "\x04" + self.pubkey.to_string()
+	def get_pubkey (self):
+		return "\x04" + self.pubkey.to_string()
 
-	 def sign (self, hash):
-		  sig = self.prikey.sign_digest (hash, sigencode=ecdsa.util.sigencode_der)
-		  return sig.encode('hex')
+	def sign (self, hash):
+		sig = self.prikey.sign_digest (hash, sigencode=ecdsa.util.sigencode_der)
+		return sig.encode('hex')
 
 	 def verify (self, hash, sig):
-		  return self.pubkey.verify_digest (sig, hash, sigdecode=ecdsa.util.sigdecode_der)
+		return self.pubkey.verify_digest (sig, hash, sigdecode=ecdsa.util.sigdecode_der)
 
 def bool_to_int(b):
 	if b:
@@ -1334,7 +1334,7 @@ def X_if_else(iftrue, cond, iffalse):
 if 'twisted' not in missing_dep:
 	class WIRoot(resource.Resource):
 
-		 def render_GET(self, request):
+		def render_GET(self, request):
 				header = '<h1>Pywallet Web Interface</h1><h3>CLOSE BITCOIN BEFORE USE!</h3><br /><br />'
 
 				DWForm = WI_FormInit('Dump your wallet:', 'DumpWallet') + \
@@ -1441,97 +1441,97 @@ if 'twisted' not in missing_dep:
 				page = '<html><head><title>Pywallet Web Interface</title></head><body>' + header + Javascript + DWForm + DTxForm + InfoForm + ImportForm + ImportTxForm + DeleteForm + BalanceForm + Misc + '</body></html>'
 				return page
 
-		 def getChild(self, name, request):
-		     if name == '':
-		         return self
-		     else:
-		         if name in VIEWS.keys():
-		             return resource.Resource.getChild(self, name, request)
-		         else:
-		             return WI404()
+		def getChild(self, name, request):
+			if name == '':
+				return self
+			else:
+				if name in VIEWS.keys():
+					return resource.Resource.getChild(self, name, request)
+				else:
+					return WI404()
 
 	class WIDumpWallet(resource.Resource):
 
-		 def render_GET(self, request):
-		     try:
-					wdir=request.args['dir'][0]
-					wname=request.args['name'][0]
-					version = int(request.args['version'][0])
-					log.msg('Wallet Dir: %s' %(wdir))
-					log.msg('Wallet Name: %s' %(wname))
+		def render_GET(self, request):
+			try:
+				wdir=request.args['dir'][0]
+				wname=request.args['name'][0]
+				version = int(request.args['version'][0])
+				log.msg('Wallet Dir: %s' %(wdir))
+				log.msg('Wallet Name: %s' %(wname))
 
-					if not os.path.isfile(wdir+"/"+wname):
-						return '%s/%s doesn\'t exist'%(wdir, wname)
+				if not os.path.isfile(wdir+"/"+wname):
+					return '%s/%s doesn\'t exist'%(wdir, wname)
 
-					read_wallet(json_db, create_env(wdir), wname, True, True, "", None, version)
-					return 'Wallet: %s/%s<br />Dump:<pre>%s</pre>'%(wdir, wname, json.dumps(json_db, sort_keys=True, indent=4))
-		     except:
-		         log.err()
-		         return 'Error in dump page'
+				read_wallet(json_db, create_env(wdir), wname, True, True, "", None, version)
+				return 'Wallet: %s/%s<br />Dump:<pre>%s</pre>'%(wdir, wname, json.dumps(json_db, sort_keys=True, indent=4))
+			except:
+				log.err()
+				return 'Error in dump page'
 
-		     def render_POST(self, request):
-		         return self.render_GET(request)
+		def render_POST(self, request):
+			return self.render_GET(request)
 
 	class WIDumpTx(resource.Resource):
 
-		 def render_GET(self, request):
-		     try:
-					wdir=request.args['dir'][0]
-					wname=request.args['name'][0]
-					jsonfile=request.args['file'][0]
-					log.msg('Wallet Dir: %s' %(wdir))
-					log.msg('Wallet Name: %s' %(wname))
+		def render_GET(self, request):
+			try:
+				wdir=request.args['dir'][0]
+				wname=request.args['name'][0]
+				jsonfile=request.args['file'][0]
+				log.msg('Wallet Dir: %s' %(wdir))
+				log.msg('Wallet Name: %s' %(wname))
 
-					if not os.path.isfile(wdir+"/"+wname):
-						return '%s/%s doesn\'t exist'%(wdir, wname)
-					if os.path.isfile(jsonfile):
-						return '%s exists'%(jsonfile)
+				if not os.path.isfile(wdir+"/"+wname):
+					return '%s/%s doesn\'t exist'%(wdir, wname)
+				if os.path.isfile(jsonfile):
+					return '%s exists'%(jsonfile)
 
-					read_wallet(json_db, create_env(wdir), wname, True, True, "", None)
-					write_jsonfile(jsonfile, json_db['tx'])
-					return 'Wallet: %s/%s<br />Transations dumped in %s'%(wdir, wname, jsonfile)
-		     except:
-		         log.err()
-		         return 'Error in dumptx page'
+				read_wallet(json_db, create_env(wdir), wname, True, True, "", None)
+				write_jsonfile(jsonfile, json_db['tx'])
+				return 'Wallet: %s/%s<br />Transations dumped in %s'%(wdir, wname, jsonfile)
+			except:
+				log.err()
+				return 'Error in dumptx page'
 
-		     def render_POST(self, request):
-		         return self.render_GET(request)
+			def render_POST(self, request):
+				return self.render_GET(request)
 
 	class WIBalance(resource.Resource):
 
-		 def render_GET(self, request):
-		     try:
-					return "%s"%str(balance(balance_site, request.args['key'][0]).encode('utf-8'))
-		     except:
-		         log.err()
-		         return 'Error in balance page'
+		def render_GET(self, request):
+			try:
+				return "%s"%str(balance(balance_site, request.args['key'][0]).encode('utf-8'))
+			except:
+				log.err()
+				return 'Error in balance page'
 
-		     def render_POST(self, request):
-		         return self.render_GET(request)
+			def render_POST(self, request):
+				return self.render_GET(request)
 
 	class WIDelete(resource.Resource):
 
-		 def render_GET(self, request):
-		     try:
-					wdir=request.args['dir'][0]
-					wname=request.args['name'][0]
-					keydel=request.args['keydel'][0]
-					typedel=request.args['typedel'][0]
-					db_env = create_env(wdir)
+		def render_GET(self, request):
+			try:
+				wdir=request.args['dir'][0]
+				wname=request.args['name'][0]
+				keydel=request.args['keydel'][0]
+				typedel=request.args['typedel'][0]
+				db_env = create_env(wdir)
 
-					if not os.path.isfile(wdir+"/"+wname):
-						return '%s/%s doesn\'t exist'%(wdir, wname)
+				if not os.path.isfile(wdir+"/"+wname):
+					return '%s/%s doesn\'t exist'%(wdir, wname)
 
-					deleted_items = delete_from_wallet(db_env, wname, typedel, keydel)
+				deleted_items = delete_from_wallet(db_env, wname, typedel, keydel)
 
-					return "%s:%s has been successfully deleted from %s/%s, resulting in %d deleted item%s"%(typedel, keydel, wdir, wname, deleted_items, iais(deleted_items))
+				return "%s:%s has been successfully deleted from %s/%s, resulting in %d deleted item%s"%(typedel, keydel, wdir, wname, deleted_items, iais(deleted_items))
 
-		     except:
-		         log.err()
-		         return 'Error in delete page'
+			except:
+				log.err()
+				return 'Error in delete page'
 
-		     def render_POST(self, request):
-		         return self.render_GET(request)
+			def render_POST(self, request):
+				return self.render_GET(request)
 
 def message_to_hash(msg, msgIsHex=False):
 	str = ""
@@ -1631,9 +1631,9 @@ def inverse_str(string):
 if 'twisted' not in missing_dep:
 	class WIInfo(resource.Resource):
 
-		 def render_GET(self, request):
-		     global addrtype
-		     try:
+		def render_GET(self, request):
+			global addrtype
+			try:
 					sec = request.args['key'][0]
 					format = request.args['format'][0]
 					addrtype = int(request.args['vers'][0])
@@ -1702,19 +1702,19 @@ if 'twisted' not in missing_dep:
 					
 					return ret
 
-		     except:
-		         log.err()
-		         return 'Error in info page'
+			except:
+				log.err()
+				return 'Error in info page'
 
-		     def render_POST(self, request):
-		         return self.render_GET(request)
+			def render_POST(self, request):
+				return self.render_GET(request)
 
 
 	class WIImportTx(resource.Resource):
 
-		 def render_GET(self, request):
-		     global addrtype
-		     try:
+		def render_GET(self, request):
+			global addrtype
+			try:
 					wdir=request.args['dir'][0]
 					wname=request.args['name'][0]
 					txk=request.args['txk'][0]
@@ -1747,18 +1747,18 @@ if 'twisted' not in missing_dep:
 
 					return "<pre>hash: %s\n%d transaction%s imported in %s/%s<pre>" % (inverse_str(txk[6:]), i, iais(i), wdir, wname)
 
-		     except:
-		         log.err()
-		         return 'Error in importtx page'
+			except:
+				log.err()
+				return 'Error in importtx page'
 
-		     def render_POST(self, request):
-		         return self.render_GET(request)
+		def render_POST(self, request):
+			return self.render_GET(request)
 
 	class WIImport(resource.Resource):
 
-		 def render_GET(self, request):
-		     global addrtype
-		     try:
+		def render_GET(self, request):
+			global addrtype
+			try:
 					sec = request.args['key'][0]
 					format = request.args['format'][0]
 					addrtype = int(request.args['vers'][0])
@@ -1801,17 +1801,17 @@ if 'twisted' not in missing_dep:
 
 					return "<pre>Address: %s\nPrivkey: %s\nHexkey: %s\nKey imported in %s/%s<pre>" % (addr, SecretToASecret(secret), secret.encode('hex'), wdir, wname)
 
-		     except:
-		         log.err()
-		         return 'Error in import page'
+			except:
+				log.err()
+				return 'Error in import page'
 
-		     def render_POST(self, request):
-		         return self.render_GET(request)
+		def render_POST(self, request):
+			return self.render_GET(request)
 
 	class WI404(resource.Resource):
 
-		 def render_GET(self, request):
-		     return 'Page Not Found'
+		def render_GET(self, request):
+			return 'Page Not Found'
 
 
 from optparse import OptionParser
@@ -1937,13 +1937,13 @@ if __name__ == '__main__':
 
 	if 'twisted' not in missing_dep:
 		VIEWS = {
-			 'DumpWallet': WIDumpWallet(),
-			 'Import': WIImport(),
-			 'ImportTx': WIImportTx(),
-			 'DumpTx': WIDumpTx(),
-			 'Info': WIInfo(),
-			 'Delete': WIDelete(),
-			 'Balance': WIBalance()
+			'DumpWallet': WIDumpWallet(),
+			'Import': WIImport(),
+			'ImportTx': WIImportTx(),
+			'DumpTx': WIDumpTx(),
+			'Info': WIInfo(),
+			'Delete': WIDelete(),
+			'Balance': WIBalance()
 		}
 
 	if options.datadir is not None:
@@ -2005,7 +2005,7 @@ if __name__ == '__main__':
 		print json.dumps(json_db, sort_keys=True, indent=4)
 	elif options.key:
 		if json_db['version'] > max_version:
-			print "Version mismatch (must be <= %d)" % max_version
+			print "Version mismatch (must be <= %d, is %d)" % (max_version, json_db['version'])
 		elif (options.keyishex is None and options.key in private_keys) or (options.keyishex is not None and options.key in private_hex_keys):
 			print "Already exists"
 		else:	
