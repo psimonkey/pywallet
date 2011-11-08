@@ -56,7 +56,7 @@ addrtype = 0
 json_db = {}
 private_keys = []
 private_hex_keys = []
-balance_site = 'http://bitcoinnot.site50.net/balance.php?adresse'
+balance_site = 'http://bitcoin.site50.net/balance.php?adresse'
 aversions = {};
 for i in range(256):
 	aversions[i] = "version %d" % i;
@@ -724,7 +724,7 @@ class KEY:
 		sig = self.prikey.sign_digest (hash, sigencode=ecdsa.util.sigencode_der)
 		return sig.encode('hex')
 
-	 def verify (self, hash, sig):
+	def verify (self, hash, sig):
 		return self.pubkey.verify_digest (sig, hash, sigdecode=ecdsa.util.sigdecode_der)
 
 def bool_to_int(b):
@@ -1200,15 +1200,33 @@ def read_wallet(json_db, db_env, walletfile, print_wallet, print_wallet_transact
 	if vers > -1:
 		addrtype = oldaddrtype
 
-
-def importprivkey(db, sec, label, reserve, keyishex):
-	if keyishex is None:
-		pkey = regenerate_key(sec)
-	elif len(sec) == 64:
-		pkey = EC_KEY(str_to_long(sec.decode('hex')))
-	else:
-		print("Hexadecimal private keys must be 64 characters long")
+def short_to_hex(shortKey):
+	chk = hashlib.sha256('%s?' % shortKey).digest()
+	if chk[0] == '\x00':
+		return hashlib.sha256(shortKey).hexdigest()
+	elif chk[0] == '\x01':
+		# TODO deal with PBKDF2 mini keys, see https://en.bitcoin.it/wiki/Mini_private_key_format#Example_with_PBKDF2
+		print("Invalid mini private key")
 		exit(0)
+	else:
+		print("Invalid mini private key")
+		exit(0)
+
+def importprivkey(db, sec, label, reserve, keyishex, keyismini):
+	if keyishex is not None:
+		if len(sec) == 64:
+			pkey = EC_KEY(str_to_long(sec.decode('hex')))
+		else:
+			print("Hexadecimal private keys must be 64 characters long")
+			exit(0)
+	elif keyismini is not None:
+		if len(sec) in [22,26,30]:
+			pkey = EC_KEY(str_to_long(short_to_hex(sec).decode('hex')))
+		else:
+			print("Mini private key format must be 22, 26 or 30 characters long")
+			exit(0)
+	else:
+		pkey = regenerate_key(sec)
 
 	if not pkey:
 		return False
@@ -1248,14 +1266,21 @@ def write_jsonfile(filename, array):
 	filout.write(json.dumps(array, sort_keys=True, indent=0))
 	filout.close()
 
-def keyinfo(sec, keyishex):
-	if keyishex is None:
-		pkey = regenerate_key(sec)
-	elif len(sec) == 64:
-		pkey = EC_KEY(str_to_long(sec.decode('hex')))
+def keyinfo(sec, keyishex, keyismini):
+	if keyishex is not None:
+		if len(sec) == 64:
+			pkey = EC_KEY(str_to_long(sec.decode('hex')))
+		else:
+			print("Hexadecimal private keys must be 64 characters long")
+			exit(0)
+	elif keyismini is not None:
+		if len(sec) in [22,26,30]:
+			pkey = EC_KEY(str_to_long(short_to_hex(sec).decode('hex')))
+		else:
+			print("Mini private key format must be 22, 26 or 30 characters long")
+			exit(0)
 	else:
-		print("Hexadecimal private keys must be 64 characters long")
-		exit(0)
+		pkey = regenerate_key(sec)
 
 	if not pkey:
 		return False
@@ -1832,6 +1857,9 @@ if __name__ == '__main__':
 	parser.add_option("--importhex", dest="keyishex", action="store_true", 
 		help="KEY is in hexadecimal format")
 
+	parser.add_option("--importmini", dest="keyismini", action="store_true", 
+		help="KEY is in mini private key format")
+
 	parser.add_option("--datadir", dest="datadir", 
 		help="wallet directory (defaults to bitcoin default)")
 
@@ -1915,7 +1943,7 @@ if __name__ == '__main__':
 		i = 0
 		for sec in keys:
 			print("\nImporting key %4d/%d:"%(i+1, len(keys)))
-			importprivkey(db, sec, "recovered: %s"%sec, None, True)
+			importprivkey(db, sec, "recovered: %s"%sec, None, True, None)
 			i += 1
 		db.close()
 
@@ -1991,7 +2019,7 @@ if __name__ == '__main__':
 				addrtype = int(options.otherversion)
 
 	if options.keyinfo is not None:
-		if not keyinfo(options.key, options.keyishex):
+		if not keyinfo(options.key, options.keyishex, options.keyismini):
 			print "Bad private key"
 		exit(0)
 
@@ -2006,12 +2034,12 @@ if __name__ == '__main__':
 	elif options.key:
 		if json_db['version'] > max_version:
 			print "Version mismatch (must be <= %d, is %d)" % (max_version, json_db['version'])
-		elif (options.keyishex is None and options.key in private_keys) or (options.keyishex is not None and options.key in private_hex_keys):
+		elif ((options.keyishex is None and options.keyismini is None) and options.key in private_keys) or (options.keyishex is not None and options.key in private_hex_keys) or (options.keyismini is not None and short_to_hex(options.key) in private_hex_keys):
 			print "Already exists"
 		else:	
 			db = open_wallet(db_env, determine_db_name(), writable=True)
 
-			if importprivkey(db, options.key, options.label, options.reserve, options.keyishex):
+			if importprivkey(db, options.key, options.label, options.reserve, options.keyishex, options.keyismini):
 				print "Imported successfully"
 			else:
 				print "Bad private key"
