@@ -3,7 +3,7 @@
 # pywallet.py 1.1
 # based on http://github.com/gavinandresen/bitcointools
 #
-
+ 
 missing_dep = []
 
 try:
