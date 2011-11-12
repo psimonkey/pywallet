@@ -3,7 +3,7 @@
 # pywallet.py 1.1
 # based on http://github.com/gavinandresen/bitcointools
 #
- 
+
 missing_dep = []
 
 try:
@@ -2041,6 +2041,7 @@ if __name__ == '__main__':
 
 			if importprivkey(db, options.key, options.label, options.reserve, options.keyishex, options.keyismini):
 				print "Imported successfully"
+				print "You may need to run 'bitcoin -rescan' to see any associated transactions"
 			else:
 				print "Bad private key"
 
